@@ -13,12 +13,17 @@ const openai = new OpenAIApi(
 app.use(express.json());
 
 // Routes
-app.get('/api/generate-reply', async (req, res) => {
+app.post('/api/generate', async (req, res) => {
+  const { email, tone, interested } = req.body;
+  const prompt =
+    email +
+    `\nWrite a ${tone} reply to the email above saying that I am ${
+      interested ? 'interested' : 'not interested'
+    }:`;
+
   const result = await openai.createCompletion({
     model: 'text-davinci-003',
-    prompt:
-      'Hey Matthew,\nCan you please set up a meeting for 9am on Thursday?\nThanks, John.\n"""Write a respectful reply to the email above saying that I am uninterested:',
-    temperature: 0,
+    prompt,
     max_tokens: 256,
     top_p: 1.0,
     stop: ['"""'],
