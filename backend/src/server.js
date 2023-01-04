@@ -1,6 +1,7 @@
 import { Configuration, OpenAIApi } from 'openai';
 import express from 'express';
 import * as dotenv from 'dotenv';
+import { format } from './format.js';
 
 // Setup
 dotenv.config({ path: '../.env' });
@@ -15,11 +16,7 @@ app.use(express.json());
 // Routes
 app.post('/api/generate', async (req, res) => {
   const { email, tone, interested } = req.body;
-  const prompt =
-    email +
-    `\nWrite a ${tone} reply to the email above saying that I am ${
-      interested ? 'interested' : 'not interested'
-    }:`;
+  const prompt = format(email, tone, interested);
 
   const result = await openai.createCompletion({
     model: 'text-davinci-003',
@@ -28,6 +25,7 @@ app.post('/api/generate', async (req, res) => {
     top_p: 1.0,
     stop: ['"""'],
   });
+
   res.json(result.data);
 });
 
