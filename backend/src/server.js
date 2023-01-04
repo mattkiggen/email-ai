@@ -1,8 +1,9 @@
 import { Configuration, OpenAIApi } from 'openai';
 import express from 'express';
 import * as dotenv from 'dotenv';
-import { format } from './format.js';
+import { formatPrompt, formatValidationErrors } from './format.js';
 import { logger } from './logger.js';
+import { validate } from './validation.js';
 
 // Setup
 dotenv.config({ path: '../.env' });
@@ -18,18 +19,27 @@ app.use(express.json());
 app.post('/api/generate', async (req, res) => {
   logger.info('Generate endpoint called');
 
-  const { email, tone, interested } = req.body;
-  const prompt = format(email, tone, interested);
+  const { error } = validate(req.body);
+  if (error) {
+    const errors = formatValidationErrors(error);
+    return res.status(400).json({ message: 'Bad request', errors });
+  }
 
-  const result = await openai.createCompletion({
-    model: 'text-davinci-003',
-    prompt,
-    max_tokens: 256,
-    top_p: 1.0,
-    stop: ['"""'],
-  });
+  try {
+    const { email, tone, interested } = req.body;
+    const result = await openai.createCompletion({
+      model: 'text-davinci-003',
+      prompt: formatPrompt(email, tone, interested),
+      max_tokens: 256,
+      top_p: 1.0,
+      stop: ['"""'],
+    });
 
-  res.json(result.data);
+    res.json(result.data);
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ message: 'An unexpected error occured' });
+  }
 });
 
 // Listen
